@@ -85,14 +85,14 @@ All paths you provide should be relative to the working directory. You do not ne
             ),
         )
 
+        if not res.function_calls:
+            print(res.text)
+            break
+
         if res.candidates:
             for candidate in res.candidates:
                 if candidate.content:
                     messages.append(candidate.content)
-                for part in candidate.content.parts:
-                    if part.text:
-                        print(part.text)
-                        return
 
         if res.function_calls:
             call_res = call_function(res.function_calls[0], verbose)
