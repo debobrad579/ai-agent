@@ -68,32 +68,41 @@ All paths you provide should be relative to the working directory. You do not ne
         types.Content(role="user", parts=[types.Part(text=user_prompt)]),
     ]
 
-    res = client.models.generate_content(
-        model="gemini-2.0-flash-001",
-        contents=messages,
-        config=types.GenerateContentConfig(
-            tools=[types.Tool(
-                function_declarations=[
-                    schema_get_files_info,
-                    schema_get_file_content,
-                    schema_write_file,
-                    schema_run_python_file,
-                ]
-            )],
-            system_instruction=system_prompt,
-        ),
-    )
+    for _ in range(20):
+        res = client.models.generate_content(
+            model="gemini-2.0-flash-001",
+            contents=messages,
+            config=types.GenerateContentConfig(
+                tools=[types.Tool(
+                    function_declarations=[
+                        schema_get_files_info,
+                        schema_get_file_content,
+                        schema_write_file,
+                        schema_run_python_file,
+                    ]
+                )],
+                system_instruction=system_prompt,
+            ),
+        )
 
-    print(res.text)
+        if res.candidates:
+            for candidate in res.candidates:
+                if candidate.content:
+                    messages.append(candidate.content)
+                for part in candidate.content.parts:
+                    if part.text:
+                        print(part.text)
+                        return
 
-    if res.function_calls:
-        call_res = call_function(res.function_calls[0], verbose)
-        try:
-            func_res = call_res.parts[0].function_response.response
-            if verbose:
-                print(func_res)
-        except Exception:
-            raise Exception("Error: An error has occured when calling function.")
+        if res.function_calls:
+            call_res = call_function(res.function_calls[0], verbose)
+            try:
+                func_res = call_res.parts[0].function_response.response
+                messages.append(call_res)
+                if verbose:
+                    print(func_res)
+            except Exception:
+                raise Exception("Error: An error has occured when calling function.")
 
     if verbose:
         print(f"User prompt: {user_prompt}")
